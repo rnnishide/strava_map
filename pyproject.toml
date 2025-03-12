@@ -5,9 +5,9 @@ build-backend = "flit_core.buildapi"
 [project]
 name =  "py-project-toml"
 authors = [
-    {name = "Daniel Ciborowski", email = "dciborow@microsoft.com"},
+    {name = "Rebecca Nishide", email = "rnnishide@gmail.com"},
 ]
-description = "Sample Python Project for creating a new Python Module"
+description = "Package to make an image of all routes given gpx files downloaded from Strava."
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -47,12 +47,10 @@ test = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/microsoft/python-package-template/tree/main#readme"
-Source = "https://github.com/microsoft/python-package-template"
-Tracker = "https://github.com/microsoft/python-package-template/issues"
+Source = "https://github.com/rnnishide/strava_map"
 
 [tool.flit.module]
-name = "python_package"
+name = "strava_map"
 
 [tool.bandit]
 exclude_dirs = ["build","dist","tests","scripts"]
@@ -111,20 +109,12 @@ executionEnvironments = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov-report xml:coverage.xml --cov src --cov-fail-under 0 --cov-append -m 'not integration'"
+addopts = "--doctest-modules"
 pythonpath = [
   "src"
 ]
-testpaths = "tests"
-junit_family = "xunit2"
-markers = [
-    "integration: marks as integration test",
-    "notebooks: marks as notebook test",
-    "gpu: marks as gpu test",
-    "spark: marks tests which need Spark",
-    "slow: marks tests as slow",
-    "unit: fast offline tests",
-]
+testpaths = ["tests", "src"]
+
 
 [tool.tox]
 legacy_tox_ini = """
