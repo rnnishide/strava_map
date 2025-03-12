@@ -1,11 +1,39 @@
-# Building package
+# First things first
 
 Make sure `build` package is installed, then run:
 
 ```
-pytohn3 -m build
+python3 -m build
 ```
 
 # Running tests
 
-T
+To run tests:
+
+```
+pytest .
+
+```
+
+# Reccomended Devtools
+
+Formatting:
+```
+ruff format
+```
+
+Linting:
+```
+ruff check
+```
+
+Static type checking:
+```
+mypy src
+```
+
+and
+
+```
+mypy tests
+```

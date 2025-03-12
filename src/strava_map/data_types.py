@@ -1,6 +1,6 @@
-from pydantic.dataclasses import dataclass
-import datetime
 from enum import Enum
+
+from pydantic.dataclasses import dataclass
 
 
 class ActivityTypes(Enum):

@@ -1,5 +1,5 @@
-import pytest
 import pathlib
+
 from strava_map import process_data
 
 

@@ -1,4 +1,5 @@
 import pathlib
+
 from strava_map import data_types
 
 METADATA_TAG = "metadata"
@@ -27,7 +28,9 @@ def extract_data(line: str) -> str:
         try:
             current_char = next(iter_line)
         except StopIteration:
-            raise RuntimeError(f"Data corrupted, failed to find end tag in line:\n    {line}")
+            raise RuntimeError(
+                f"Data corrupted, failed to find end tag in line:\n    {line}"
+            )
         if current_char == "<":
             break
         data += current_char
@@ -45,7 +48,9 @@ def process_file(path_to_file: pathlib.Path):
         if f"<{METADATA_TAG}>" in next(lines):
             start_time = extract_data(next(lines))
             if f"</{METADATA_TAG}>" not in next(lines):
-                raise TypeError("Data not in expected format, {path_to_file} is corrupted.")
+                raise TypeError(
+                    "Data not in expected format, {path_to_file} is corrupted."
+                )
 
     # Next is name, and it is always in one line and it is always followed by type.
     name = ""
