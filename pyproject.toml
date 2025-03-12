@@ -21,25 +21,14 @@ classifiers = [
 requires-python = ">=3.8.1"
 dynamic = ["version"]
 
+dependencies = [
+    "pydantic",
+    "plotly",
+]
 
 test = [
-    "bandit[toml]==1.7.5",
-    "black==23.3.0",
-    "check-manifest==0.49",
-    "flake8-bugbear==23.5.9",
-    "flake8-docstrings",
-    "flake8-formatter_junit_xml",
-    "flake8",
-    "flake8-pyproject",
-    "pre-commit==3.3.1",
-    "pylint==2.17.4",
-    "pylint_junit",
-    "pytest-cov==4.0.0",
-    "pytest-mock<3.10.1",
-    "pytest-runner",
-    "pytest==7.3.1",
-    "pytest-github-actions-annotate-failures",
-    "shellcheck-py==0.9.0.2"
+    "mypy==1.15.0",
+    "ruff==0.9.9",
 ]
 
 [project.urls]

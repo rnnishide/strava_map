@@ -1,6 +1,7 @@
 import pathlib
-
+from typing import List
 from strava_map import data_types
+import plotly.graph_objects as go
 
 METADATA_TAG = "metadata"
 TIME_TAG = "time"
@@ -76,3 +77,44 @@ def process_file(path_to_file: pathlib.Path):
         coordinates=tuple(coords),
         name=name,
     )
+
+
+def plot_activities(activities: List[data_types.Activity]) -> go.Figure:
+    fig = go.Figure()
+    for activity in activities:
+        x, y = [], []
+        for coord in activity.coordinates:
+            x.append(coord[1])
+            y.append(coord[0])
+        fig.add_trace(
+            go.Scatter(
+                x=x, y=y, marker={"color": "white"}, mode="lines", line={"width": 1}
+            )
+        )
+    fig.update_yaxes(range=[33.7, 34.2])
+    fig.update_xaxes(range=[-119.25, -118.05])
+
+    fig.update_layout(
+        xaxis=dict(showgrid=False, zeroline=False),
+        yaxis=dict(showgrid=False, zeroline=False),
+        plot_bgcolor="black",
+    )
+    fig.show()
+
+
+if __name__ == "__main__":
+    print("Input path to data folder.")
+    data_path = pathlib.Path(input()).expanduser()
+    activities = []
+    for f in data_path.iterdir():
+        if f.suffix == ".gpx":
+            try:
+                activities.append(process_file(f))
+            except:
+                print(
+                    f"Failed to process {f}, omitting from summary. Data may be corrupted."
+                )
+    plot_activities(activities)
+
+
+# TODO: add in filtering for location to make the plot look nice
