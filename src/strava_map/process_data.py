@@ -2,11 +2,18 @@ import pathlib
 from typing import List
 from strava_map import data_types
 import plotly.graph_objects as go
+import networkx
+from geopy.distance import geodesic
 
 METADATA_TAG = "metadata"
 TRACKING_DATA_TAG = "trk"
 DATA_PT_TAG = "trkpt"
 NAME_TAG = "name"
+
+# 4 degrees of latitude is very roughly 0.1 miles
+DEG_LAT_LONG = 5
+DEG_DISTANCE = 3
+MAX_ALLOWED_EDGE = 0.1
 
 
 def extract_data(line: str) -> str:
@@ -66,7 +73,7 @@ def process_file(path_to_file: pathlib.Path):
             coords_line = line.split('"')
             coords.append((float(coords_line[1]), float(coords_line[3])))
             # elevation always follows coordinates.
-            elevation.append(extract_data(next(lines)))
+            elevation.append(float(extract_data(next(lines))))
     return data_types.Activity(
         start_time=start_time,
         elevation=tuple(elevation),
@@ -99,6 +106,28 @@ def plot_activities(activities: List[data_types.Activity]) -> go.Figure:
     fig.show()
 
 
+def add_activity_to_graph(
+    graph: networkx.Graph,
+    activity: data_types.Activity,
+) -> networkx.Graph:
+    for coord in activity.coordinates:
+        rounded_coords = tuple(round(i, DEG_LAT_LONG) for i in coord)
+        if graph.has_node(rounded_coords):
+            # Invert so that nodes that show up more often have lower cost
+            graph.nodes[rounded_coords]["weight"] = 1 / (
+                1 + graph.nodes[rounded_coords]["weight"]
+            )
+        else:
+            graph.add_node(rounded_coords, weight=1)
+    for coord1 in graph.nodes():
+        for coord2 in graph.nodes():
+            if coord1 != coord2:
+                dist = round(geodesic(coord1, coord2).miles, DEG_DISTANCE)
+                if dist < MAX_ALLOWED_EDGE:
+                    graph.add_edge(coord1, coord2, weight=dist)
+    return graph
+
+
 if __name__ == "__main__":
     print("Input path to data folder.")
     data_path = pathlib.Path(input()).expanduser()
@@ -107,7 +136,7 @@ if __name__ == "__main__":
         if f.suffix == ".gpx":
             try:
                 activities.append(process_file(f))
-            except:
+            except StopIteration:
                 print(
                     f"Failed to process {f}, omitting from summary. Data may be corrupted."
                 )
@@ -124,3 +153,5 @@ if __name__ == "__main__":
 # Is the data type really justified?
 # Ways to speed up?
 # Ways to make this more impressive, add more complex features?
+
+# Greedy alg to make route between two points on a graph

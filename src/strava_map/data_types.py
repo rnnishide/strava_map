@@ -15,3 +15,6 @@ class Activity:
     start_time: str
     name: str
     type: ActivityTypes
+
+    class Config:
+        frozen = True

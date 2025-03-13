@@ -9,7 +9,7 @@ python3 -m build
 and install:
 
 ```
-python3 -m pip install .
+python3 -m pip install ./dist/strava_map*tar.gz
 ```
 
 # Running tests
