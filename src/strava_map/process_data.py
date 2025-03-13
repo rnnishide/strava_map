@@ -4,11 +4,8 @@ from strava_map import data_types
 import plotly.graph_objects as go
 
 METADATA_TAG = "metadata"
-TIME_TAG = "time"
 TRACKING_DATA_TAG = "trk"
 DATA_PT_TAG = "trkpt"
-TYPE_TAG = "type"
-ELEVATION_TAG = "ele"
 NAME_TAG = "name"
 
 
@@ -118,3 +115,12 @@ if __name__ == "__main__":
 
 
 # TODO: add in filtering for location to make the plot look nice
+# TODO: Use elevation to add color gradient
+# TODO: add ability to filter out activities by name, type, and date
+# TODO: package as cli app
+
+
+# THINK ABOUT:
+# Is the data type really justified?
+# Ways to speed up?
+# Ways to make this more impressive, add more complex features?
