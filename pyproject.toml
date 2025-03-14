@@ -25,7 +25,8 @@ dependencies = [
     "pydantic",
     "plotly",
     "networkx==3.2.1",
-    "geopy"
+    "geopy",
+    "fitparse",
 ]
 
 test = [

@@ -6,6 +6,7 @@ from pydantic.dataclasses import dataclass
 class ActivityTypes(Enum):
     CYCLING = "cycling"
     RUN = "running"
+    UNKNOWN = "unknown"
 
 
 @dataclass
