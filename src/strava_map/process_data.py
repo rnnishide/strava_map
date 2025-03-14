@@ -1,5 +1,7 @@
+from __future__ import annotations
 import pathlib
 
+import warnings
 from typing import List
 from strava_map import data_types
 import plotly.graph_objects as go
@@ -168,7 +170,11 @@ def uniform_cost_search(graph, start, goal):
     return None, []
 
 
-# TODO: Make a node that has all the data in it
+def _calculate_distance(coord1, coord2) -> float:
+    return abs((coord1[0] - coord2[0]) ** 2 + (coord1[1] - coord2[1]) ** 2) ** 0.5
+
+
+# TODO: Make graph nodes a new datatype so I can carry around metadata
 def add_activity_to_graph(
     graph: networkx.Graph,
     activity: data_types.Activity,
@@ -178,20 +184,15 @@ def add_activity_to_graph(
         # Build up edges in a smarter way by inserting existing nodes into edges for existing nodes
         rounded_coords = tuple(round(i, DEG_LAT_LONG) for i in coord)
         if graph.has_node(rounded_coords):
-            print(rounded_coords, graph.nodes[rounded_coords]["weight"])
+            node = graph.nodes[rounded_coords]
             # Invert instance count so that nodes that show up more often have lower cost
-            graph.nodes[rounded_coords]["weight"] = 1 / (
-                1 + graph.nodes[rounded_coords]["weight"]
-            )
+            node["weight"] = 1 / (1 + node["weight"])
         else:
             # TODO: Add custom data type for node so i can keep metadata attached to points.
             # This would open the door to more complicated analysis.
             graph.add_node(rounded_coords, weight=1)
         if previous_node:
-            dist = (
-                (rounded_coords[0] - previous_node[0]) ** 2
-                + (rounded_coords[1] - previous_node[1]) ** 2
-            ) ** 0.5
+            dist = _calculate_distance(rounded_coords, previous_node)
             # We don't want edges that represent huge distance gaps.
             # These gaps are due to pausing gps tracking (at least in my data...)
             if dist < MAX_EDGE_LEN:
@@ -222,6 +223,11 @@ def plot_activities(activities: List[data_types.Activity]) -> go.Figure:
     return fig
 
 
+DISPATCH_PARSERS = {
+    ".gpx": process_strava_gpx_file,
+    ".fit": process_fit_file,
+}
+
 # TODO: Move demo from script to jupyter notebook, add to repo
 if __name__ == "__main__":
     print("Input path to data folder.")
@@ -229,15 +235,14 @@ if __name__ == "__main__":
     data_path = pathlib.Path("~/Downloads/export_120164743/activities").expanduser()
     activities = []
     for f in data_path.iterdir():
-        if f.suffix == ".gpx":
-            try:
-                activities.append(process_strava_gpx_file(f))
-            except StopIteration:
-                print(
-                    f"Failed to process {f}, omitting from summary. Data may be corrupted."
-                )
-        elif f.suffix == ".fit":
-            activities.append(process_fit_file(f))
+        parser = DISPATCH_PARSERS.get(f.suffix, None)
+        if parser is None:
+            warnings.warn(f"Can't process {f}, could not find parser for file type.")
+            continue
+        try:
+            activities.append((f))
+        except Exception:
+            warnings.warn(f"Failed to process file {f}.")
     fig = plot_activities(activities)
     g: networkx.Graph = networkx.Graph()
     for activity in activities:
