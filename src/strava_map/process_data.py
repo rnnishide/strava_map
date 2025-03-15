@@ -1,8 +1,9 @@
 from __future__ import annotations
+from ast import parse
 import pathlib
 
 import warnings
-from typing import List
+from typing import List, Callable
 from strava_map import data_types
 import plotly.graph_objects as go
 import networkx
@@ -47,7 +48,7 @@ def _extract_html_style_data(line: str) -> str:
     return data
 
 
-def process_strava_gpx_file(path_to_file: pathlib.Path):
+def _process_strava_gpx_file(path_to_file: pathlib.Path):
     METADATA_TAG = "metadata"
     TRACKING_DATA_TAG = "trk"
     DATA_PT_TAG = "trkpt"
@@ -104,7 +105,7 @@ def _semicircle_to_deg(val) -> float:
     return val * (180 / 2**31)
 
 
-def process_fit_file(path_to_file: pathlib.Path):
+def _process_fit_file(path_to_file: pathlib.Path):
     fitfile = fitparse.FitFile(str(path_to_file))
     coords = []
     records = fitfile.get_messages("record")
@@ -126,7 +127,7 @@ def process_fit_file(path_to_file: pathlib.Path):
 
 # This code is totally ripped off from https://www.geeksforgeeks.org/uniform-cost-search-ucs-in-ai/
 # I copy pasted the example there and edited it to do what I want.
-def reconstruct_path(visited, goal):
+def _reconstruct_path(visited, goal):
     # Reconstruct the path from start to goal by following the visited nodes
     path = []
     current = goal
@@ -155,7 +156,7 @@ def uniform_cost_search(graph, start, goal):
 
         # If we reached the goal, return the total cost and the path
         if current_node == goal:
-            return current_cost, reconstruct_path(visited, goal)
+            return current_cost, _reconstruct_path(visited, goal)
 
         # Explore the neighbors
         for coord in graph.neighbors(current_node):
@@ -201,7 +202,7 @@ def add_activity_to_graph(
     return graph
 
 
-def plot_activities(activities: List[data_types.Activity]) -> go.Figure:
+def plot_activities(activities: List[data_types.Activity], fig_style=None) -> go.Figure:
     # TODO: Add plotting options based on other data in Activity
     # Like color gradient based on elevation.
     fig = go.Figure()
@@ -215,18 +216,45 @@ def plot_activities(activities: List[data_types.Activity]) -> go.Figure:
                 x=x, y=y, marker={"color": "white"}, mode="lines", line={"width": 1}
             )
         )
-    fig.update_layout(
-        xaxis=dict(showgrid=False, zeroline=False),
-        yaxis=dict(showgrid=False, zeroline=False),
-        plot_bgcolor="black",
-    )
+    _fig_style = {
+        "xaxis": dict(showgrid=False, zeroline=False),
+        "yaxis": dict(showgrid=False, zeroline=False),
+        "plot_bgcolor": "black",
+    }
+    if fig_style:
+        _fig_style.update(fig_style)
+
+    fig.update_layout(**_fig_style)
     return fig
 
 
-DISPATCH_PARSERS = {
-    ".gpx": process_strava_gpx_file,
-    ".fit": process_fit_file,
+DISPATCH_PARSERS: Callable[[pathlib.Path], data_types.Activity] = {
+    ".gpx": _process_strava_gpx_file,
+    ".fit": _process_fit_file,
 }
+
+
+def parse_activity_file(path_to_file: pathlib.Path) -> data_types.Activity:
+    """Create a new `Activity` using data from a file.
+
+    See module globnal `DISPATCH_PARSERS` to see what file types are supported.
+    To add a support for a new parser:
+
+    >>> def my_parser(path_to_file):
+    ...     print("executing my parser")
+
+    >>> DISPATCH_PARSERS[".myfileformat"] = my_parser
+    >>> parse_activity_file(pathlib.Path("./some_file.myfileformat"))
+    executing my parser
+
+    """
+    parser = DISPATCH_PARSERS.get(path_to_file.suffix, None)
+    if parser is None:
+        raise TypeError(
+            f"Parsing file with extension {path_to_file.suffix} is not supported."
+        )
+    return parser(path_to_file)
+
 
 # TODO: Move demo from script to jupyter notebook, add to repo
 if __name__ == "__main__":
@@ -235,14 +263,10 @@ if __name__ == "__main__":
     data_path = pathlib.Path("~/Downloads/export_120164743/activities").expanduser()
     activities = []
     for f in data_path.iterdir():
-        parser = DISPATCH_PARSERS.get(f.suffix, None)
-        if parser is None:
-            warnings.warn(f"Can't process {f}, could not find parser for file type.")
-            continue
         try:
-            activities.append((f))
-        except Exception:
-            warnings.warn(f"Failed to process file {f}.")
+            activities.append(parse_activity_file(f))
+        except Exception as e:
+            warnings.warn(f"Failed to process file {f}.\n    {str(e.__traceback__)}")
     fig = plot_activities(activities)
     g: networkx.Graph = networkx.Graph()
     for activity in activities:

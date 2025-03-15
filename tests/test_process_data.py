@@ -3,9 +3,9 @@ from strava_map import process_data, data_types
 import networkx
 
 
-def test_process_file(test_data):
+def test_process_gpx_file(test_data):
     test_file = test_data / "test_data_0.gpx"
-    activity = process_data.process_strava_gpx_file(test_file)
+    activity = process_data.parse_activity_file(test_file)
 
     expected_activity = data_types.Activity(
         coordinates=((0, 1), (2, 3), (4, 5)),
@@ -16,6 +16,18 @@ def test_process_file(test_data):
     )
 
     assert activity == expected_activity
+
+
+def test_process_fit_file(test_data):
+    test_file = test_data / "test_fit_file.fit"
+    # Test is basically just checking that parser doesn't error, and spot checking last 3 data points
+    # TODO: Write a smaller fit file with test data (smaller dataset, lower precision floats)
+    activity = process_data.parse_activity_file(test_file)
+    assert activity.coordinates[-3:] == (
+        (34.02329723350704, -118.49337819032371),
+        (34.023278038948774, -118.49339839071035),
+        (34.023265801370144, -118.49340819753706),
+    )
 
 
 def test_add_activity_to_graph():
@@ -38,7 +50,6 @@ def test_add_activity_to_graph():
         (round(c[0], process_data.DEG_LAT_LONG), round(c[1], process_data.DEG_LAT_LONG))
         for c in coords
     )
-    print(list(g.nodes))
     assert list(data[1] for data in g.nodes(data="weight")) == [1, 1, 0.5]
 
 
