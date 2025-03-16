@@ -1,6 +1,8 @@
 from enum import Enum
-
+from typing import Tuple
 from pydantic.dataclasses import dataclass
+
+GPSCoordinate = Tuple[float, float]
 
 
 class ActivityTypes(Enum):

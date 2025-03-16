@@ -48,3 +48,7 @@ mypy tests
 
 - automate data scraping
 - setup CI to run mypy, pytest, and ruff
+- package as CLI app
+- jupyter notebook demo
+- logging
+- Update to python 3.12

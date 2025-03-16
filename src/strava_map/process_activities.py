@@ -1,21 +1,15 @@
 from __future__ import annotations
-from ast import parse
 import pathlib
 
 import warnings
-from typing import List, Callable
-from strava_map import data_types
+from typing import List, Callable, Dict
+from strava_map import types
 import plotly.graph_objects as go
 import networkx
 import fitparse
-import heapq
 
 
-# 1 degrees of latitude is roughly 69 miles
-DEG_LAT_LONG = 4
-MAX_EDGE_LEN = 0.1 / 69
-
-### NOTE: The parsing part of this code leaves much to be desired...
+### NOTE: This code is probably kind of brittle.
 # Generally I am assuming a lot about file structure, units, and data available.
 # I could get a lot more data out of these files if I made my parsers smarter so they could handle optional data.
 # Right now i'm just lazily scraping out the bare minumum, in a way that works with all my own data.
@@ -73,9 +67,7 @@ def _process_strava_gpx_file(path_to_file: pathlib.Path):
         line = next(lines)
         if NAME_TAG in line:
             name = _extract_html_style_data(line)
-            activity_type = data_types.ActivityTypes(
-                _extract_html_style_data(next(lines))
-            )
+            activity_type = types.ActivityTypes(_extract_html_style_data(next(lines)))
     elevation = []
     coords = []
     while f"</{TRACKING_DATA_TAG}>" not in line:
@@ -88,7 +80,7 @@ def _process_strava_gpx_file(path_to_file: pathlib.Path):
         if len(coords) != len(elevation):
             raise RuntimeError(f"Error parsing {path_to_file}.")
 
-    return data_types.Activity(
+    return types.Activity(
         start_time=start_time,
         elevation=tuple(elevation),
         type=activity_type,
@@ -116,95 +108,20 @@ def _process_fit_file(path_to_file: pathlib.Path):
             # TODO: I should really be checking units here, but all the data i'm messing with is in semicircle.
             coords.append((_semicircle_to_deg(lat), _semicircle_to_deg(long)))
 
-    return data_types.Activity(
+    return types.Activity(
         start_time="",  # TODO: Extract from fit file.
-        type=data_types.ActivityTypes.UNKNOWN,  # TODO: Extract from fit file.
+        type=types.ActivityTypes.UNKNOWN,  # TODO: Extract from fit file.
         elevation=(-1,) * len(coords),  # TODO: Extract from fit file.
         coordinates=tuple(coords),
         name=path_to_file.root,  # TODO: Extract from fit file.
     )
 
 
-# This code is totally ripped off from https://www.geeksforgeeks.org/uniform-cost-search-ucs-in-ai/
-# I copy pasted the example there and edited it to do what I want.
-def _reconstruct_path(visited, goal):
-    # Reconstruct the path from start to goal by following the visited nodes
-    path = []
-    current = goal
-    while current is not None:
-        path.append(current)
-        current = visited[current][1]  # Get the parent node
-    path.reverse()
-    return path
-
-
-def uniform_cost_search(graph, start, goal):
-    # Priority queue to store the frontier nodes, initialized with the start node
-    start = tuple(round(val, DEG_LAT_LONG) for val in start)
-    goal = tuple(round(val, DEG_LAT_LONG) for val in goal)
-    priority_queue = [(0, start)]
-    weights = {data[0]: data[1] for data in graph.nodes(data="weight")}
-    # Dictionary to store the cost of the shortest path to each node
-    visited = {start: (0, None)}
-    if start not in graph.nodes():
-        raise ValueError(f"Start node {start} not in graph.")
-    if goal not in graph.nodes():
-        raise ValueError(f"Goal node {goal} not in graph.")
-    while priority_queue:
-        # Pop the node with the lowest cost from the priority queue
-        current_cost, current_node = heapq.heappop(priority_queue)
-
-        # If we reached the goal, return the total cost and the path
-        if current_node == goal:
-            return current_cost, _reconstruct_path(visited, goal)
-
-        # Explore the neighbors
-        for coord in graph.neighbors(current_node):
-            total_cost = current_cost + weights[coord]
-            # Check if this path to the neighbor is better than any previously found
-            # NOTE: I'm not using the weight of the edges anywhere cause I prefer routes i know.
-            if coord not in visited or total_cost < visited[coord][0]:
-                visited[coord] = (total_cost, current_node)
-                heapq.heappush(priority_queue, (total_cost, coord))
-
-    # If the goal is not reachable, return None
-    return None, []
-
-
-def _calculate_distance(coord1, coord2) -> float:
-    return abs((coord1[0] - coord2[0]) ** 2 + (coord1[1] - coord2[1]) ** 2) ** 0.5
-
-
-# TODO: Make graph nodes a new datatype so I can carry around metadata
-def add_activity_to_graph(
-    graph: networkx.Graph,
-    activity: data_types.Activity,
-) -> networkx.Graph:
-    previous_node = None
-    for coord in activity.coordinates:
-        # Build up edges in a smarter way by inserting existing nodes into edges for existing nodes
-        rounded_coords = tuple(round(i, DEG_LAT_LONG) for i in coord)
-        if graph.has_node(rounded_coords):
-            node = graph.nodes[rounded_coords]
-            # Invert instance count so that nodes that show up more often have lower cost
-            node["weight"] = 1 / (1 + node["weight"])
-        else:
-            # TODO: Add custom data type for node so i can keep metadata attached to points.
-            # This would open the door to more complicated analysis.
-            graph.add_node(rounded_coords, weight=1)
-        if previous_node:
-            dist = _calculate_distance(rounded_coords, previous_node)
-            # We don't want edges that represent huge distance gaps.
-            # These gaps are due to pausing gps tracking (at least in my data...)
-            if dist < MAX_EDGE_LEN:
-                graph.add_edge(previous_node, rounded_coords, weight=dist)
-        previous_node = rounded_coords
-    return graph
-
-
-def plot_activities(activities: List[data_types.Activity], fig_style=None) -> go.Figure:
+def plot_activities(activities: List[types.Activity], fig_style=None) -> go.Figure:
+    """Plot all activities on a graph."""
     # TODO: Add plotting options based on other data in Activity
     # Like color gradient based on elevation.
+    # TODO: Add filtering to only plot activities by type, date, etc
     fig = go.Figure()
     for activity in activities:
         x, y = [], []
@@ -228,13 +145,13 @@ def plot_activities(activities: List[data_types.Activity], fig_style=None) -> go
     return fig
 
 
-DISPATCH_PARSERS: Callable[[pathlib.Path], data_types.Activity] = {
+DISPATCH_PARSERS: Dict[str, Callable[[pathlib.Path], types.Activity]] = {
     ".gpx": _process_strava_gpx_file,
     ".fit": _process_fit_file,
 }
 
 
-def parse_activity_file(path_to_file: pathlib.Path) -> data_types.Activity:
+def parse_activity_file(path_to_file: pathlib.Path) -> types.Activity:
     """Create a new `Activity` using data from a file.
 
     See module globnal `DISPATCH_PARSERS` to see what file types are supported.
@@ -256,8 +173,9 @@ def parse_activity_file(path_to_file: pathlib.Path) -> data_types.Activity:
     return parser(path_to_file)
 
 
-# TODO: Move demo from script to jupyter notebook, add to repo
 if __name__ == "__main__":
+    from strava_map import graph
+
     print("Input path to data folder.")
     # data_path = pathlib.Path(input()).expanduser()
     data_path = pathlib.Path("~/Downloads/export_120164743/activities").expanduser()
@@ -268,11 +186,13 @@ if __name__ == "__main__":
         except Exception as e:
             warnings.warn(f"Failed to process file {f}.\n    {str(e.__traceback__)}")
     fig = plot_activities(activities)
-    g: networkx.Graph = networkx.Graph()
+    g: networkx.DiGraph = networkx.DiGraph()
     for activity in activities:
-        add_activity_to_graph(g, activity)
+        graph.add_activity_to_graph(g, activity)
 
-    cost, path = uniform_cost_search(g, (34.0234, -118.4603), (34.1262, -118.5095))
+    cost, path = graph.uniform_cost_search(
+        g, (34.0234, -118.4603), (34.1262, -118.5095)
+    )
     if cost and path:
         x, y = [], []
         for coord in path:
@@ -287,10 +207,3 @@ if __name__ == "__main__":
     fig.update_xaxes(range=[-120.4, -117.7])
 
     fig.show()
-
-
-# TODO: Update to python 3.12, i really want to use match statements...
-# TODO: add ability to filter out activities by name, type, and date.
-# TODO
-# TODO: package as cli app
-# TODO: logging
