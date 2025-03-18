@@ -29,7 +29,7 @@ def test_add_activity_to_graph():
     assert list(data[1] for data in g.nodes(data="weight")) == [1, 1, 0.5]
 
 
-def test_uniform_cost_search():
+def test_find_route():
     """
     (0, 0) -- (0, 1)
     |           |
@@ -52,7 +52,7 @@ def test_uniform_cost_search():
     g.add_edge((1, 1), (1, 2))
     g.add_edge((1, 2), (1, 3))
 
-    _, path = graph.uniform_cost_search(g, (0, 0), (1, 3))
+    _, path = graph.find_route(g, (0, 0), (1, 3))
     assert path == [(0, 0), (1, 0), (1, 1), (1, 2), (1, 3)]
 
     # Test that making (0,1) cheaper makes path go through it.
@@ -71,7 +71,7 @@ def test_uniform_cost_search():
     g.add_edge((1, 1), (1, 2))
     g.add_edge((1, 2), (1, 3))
 
-    _, path = graph.uniform_cost_search(g, (0, 0), (1, 3))
+    _, path = graph.find_route(g, (0, 0), (1, 3))
     assert path == [(0, 0), (0, 1), (1, 1), (1, 2), (1, 3)]
 
     # Test that a really short edge length tips favor back to (1,0) path
@@ -90,5 +90,5 @@ def test_uniform_cost_search():
     g.add_edge((1, 1), (1, 2))
     g.add_edge((1, 2), (1, 3))
 
-    _, path = graph.uniform_cost_search(g, (0, 0), (1, 3))
+    _, path = graph.find_route(g, (0, 0), (1, 3))
     assert path == [(0, 0), (1, 0), (1, 1), (1, 2), (1, 3)]

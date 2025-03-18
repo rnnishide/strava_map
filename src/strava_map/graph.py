@@ -1,3 +1,5 @@
+"""Tools for turning data into a graph, and analyzing that graph."""
+
 from __future__ import annotations
 
 from typing import List, Optional, Tuple, Dict
@@ -14,8 +16,7 @@ def _round_coordinates(coord) -> types.GPSCoordinate:
     return (round(coord[0], DEG_LAT_LONG), round(coord[1], DEG_LAT_LONG))
 
 
-# This code is totally ripped off from https://www.geeksforgeeks.org/uniform-cost-search-ucs-in-ai/
-# I copy pasted the example there and edited it to do what I want.
+# I referenced https://www.geeksforgeeks.org/uniform-cost-search-ucs-in-ai/ for this code.
 def _reconstruct_path(visited, goal) -> List[types.GPSCoordinate]:
     # Reconstruct the path from start to goal by following the visited nodes
     path = []
@@ -27,7 +28,7 @@ def _reconstruct_path(visited, goal) -> List[types.GPSCoordinate]:
     return path
 
 
-def uniform_cost_search(
+def find_route(
     graph: networkx.DiGraph, start: types.GPSCoordinate, goal: types.GPSCoordinate
 ) -> Tuple[float, List[types.GPSCoordinate]]:
     """Find best path from start node to goal node in graph, based on the lowest cost.
@@ -87,6 +88,7 @@ def _calculate_distance(coord1, coord2) -> float:
 def add_activity_to_graph(
     graph: networkx.DiGraph,
     activity: types.Activity,
+    max_edge_length: float = MAX_EDGE_LEN,
 ) -> networkx.DiGraph:
     """Add coordinates from given Activity to a directional graph.
 
@@ -94,6 +96,8 @@ def add_activity_to_graph(
     Nodes are weighted by `1/n_times_gps_records_at_node`.
     Edges are directional such that they point from a node recorded at an earlier time to a later one.
     Edges are weighted by distance.
+
+    Edges that are longer than the value specified by `max_edge_length` will be ommited.
     """
     previous_node = None
     for coord in activity.coordinates:
@@ -111,7 +115,16 @@ def add_activity_to_graph(
             dist = _calculate_distance(rounded_coords, previous_node)
             # We don't want edges that represent huge distance gaps.
             # These gaps are due to pausing gps tracking (at least in my data...)
-            if dist < MAX_EDGE_LEN:
+            if dist < max_edge_length:
                 graph.add_edge(previous_node, rounded_coords, weight=dist)
         previous_node = rounded_coords
     return graph
+
+
+def make_graph(
+    activities: List[types.Activity], max_edge_length: float = MAX_EDGE_LEN
+) -> networkx.DiGraph:
+    g: networkx.DiGraph = networkx.DiGraph()
+    for activity in activities:
+        add_activity_to_graph(g, activity, max_edge_length=max_edge_length)
+    return g

@@ -26,6 +26,7 @@ def test_process_fit_file(test_data):
         (34.023278038948774, -118.49339839071035),
         (34.023265801370144, -118.49340819753706),
     )
+    assert activity.name == "test_fit_file"
 
 
 # TODO: test figure creation by checking figure dict stuff, without showing

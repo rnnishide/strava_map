@@ -1,11 +1,12 @@
+"""Process raw data downloaded from strava."""
+
 from __future__ import annotations
 import pathlib
-
+import traceback
 import warnings
-from typing import List, Callable, Dict
+from typing import List, Callable, Dict, Any, Optional
 from strava_map import types
 import plotly.graph_objects as go
-import networkx
 import fitparse
 
 
@@ -113,36 +114,8 @@ def _process_fit_file(path_to_file: pathlib.Path):
         type=types.ActivityTypes.UNKNOWN,  # TODO: Extract from fit file.
         elevation=(-1,) * len(coords),  # TODO: Extract from fit file.
         coordinates=tuple(coords),
-        name=path_to_file.root,  # TODO: Extract from fit file.
+        name=path_to_file.stem,  # TODO: Extract from fit file.
     )
-
-
-def plot_activities(activities: List[types.Activity], fig_style=None) -> go.Figure:
-    """Plot all activities on a graph."""
-    # TODO: Add plotting options based on other data in Activity
-    # Like color gradient based on elevation.
-    # TODO: Add filtering to only plot activities by type, date, etc
-    fig = go.Figure()
-    for activity in activities:
-        x, y = [], []
-        for coord in activity.coordinates:
-            x.append(coord[1])
-            y.append(coord[0])
-        fig.add_trace(
-            go.Scatter(
-                x=x, y=y, marker={"color": "white"}, mode="lines", line={"width": 1}
-            )
-        )
-    _fig_style = {
-        "xaxis": dict(showgrid=False, zeroline=False),
-        "yaxis": dict(showgrid=False, zeroline=False),
-        "plot_bgcolor": "black",
-    }
-    if fig_style:
-        _fig_style.update(fig_style)
-
-    fig.update_layout(**_fig_style)
-    return fig
 
 
 DISPATCH_PARSERS: Dict[str, Callable[[pathlib.Path], types.Activity]] = {
@@ -173,37 +146,60 @@ def parse_activity_file(path_to_file: pathlib.Path) -> types.Activity:
     return parser(path_to_file)
 
 
-if __name__ == "__main__":
-    from strava_map import graph
-
-    print("Input path to data folder.")
-    # data_path = pathlib.Path(input()).expanduser()
-    data_path = pathlib.Path("~/Downloads/export_120164743/activities").expanduser()
+def parse_all_files_in_dir(path_to_dir: pathlib.Path) -> List[types.Activity]:
     activities = []
-    for f in data_path.iterdir():
+    for f in path_to_dir.iterdir():
         try:
             activities.append(parse_activity_file(f))
-        except Exception as e:
-            warnings.warn(f"Failed to process file {f}.\n    {str(e.__traceback__)}")
-    fig = plot_activities(activities)
-    g: networkx.DiGraph = networkx.DiGraph()
-    for activity in activities:
-        graph.add_activity_to_graph(g, activity)
+        except Exception:
+            warnings.warn(f"Failed to process file {f}.)")
+            print("\n    ")
+            traceback.print_exc()
 
-    cost, path = graph.uniform_cost_search(
-        g, (34.0234, -118.4603), (34.1262, -118.5095)
-    )
-    if cost and path:
+    return activities
+
+
+def plot_activities(
+    activities: List[types.Activity], fig_style: Optional[Dict[str, Any]] = None
+) -> go.Figure:
+    """Plot all activities on a graph.
+
+    Figure can be customized by passing style specifiers in `fig_style` dictionary.
+    See https://plotly.com/python/styling-plotly-express/
+    """
+    # TODO: Add plotting options based on other data in Activity
+    # Like color gradient based on elevation.
+    # TODO: Add filtering to only plot activities by type, date, etc
+    fig = go.Figure()
+    for activity in activities:
         x, y = [], []
-        for coord in path:
+        for coord in activity.coordinates:
             x.append(coord[1])
             y.append(coord[0])
         fig.add_trace(
             go.Scatter(
-                x=x, y=y, marker={"color": "red"}, mode="lines", line={"width": 2}
+                x=x, y=y, marker={"color": "white"}, mode="lines", line={"width": 1}
             )
         )
-    fig.update_yaxes(range=[33.57, 34.92])
-    fig.update_xaxes(range=[-120.4, -117.7])
+    _fig_style = {
+        "xaxis": dict(showgrid=False, zeroline=False),
+        "yaxis": dict(showgrid=False, zeroline=False),
+        "plot_bgcolor": "black",
+    }
+    if fig_style:
+        _fig_style.update(fig_style)
 
-    fig.show()
+    fig.update_layout(**_fig_style)
+    return fig
+
+
+def plot_path(fig: go.Figure, path: List[types.GPSCoordinate]) -> go.Figure:
+    """Plot path as a red trace on existing figure."""
+    x, y = [], []
+    for coord in path:
+        x.append(coord[1])
+        y.append(coord[0])
+    fig.add_trace(
+        go.Scatter(x=x, y=y, marker={"color": "red"}, mode="lines", line={"width": 2})
+    )
+    return fig

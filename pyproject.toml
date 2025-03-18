@@ -41,11 +41,11 @@ Source = "https://github.com/rnnishide/strava_map"
 name = "strava_map"
 
 [tool.pytest.ini_options]
-addopts = "--doctest-modules"
+addopts = "--doctest-modules --doctest-glob='*.md'"
 pythonpath = [
   "src"
 ]
-testpaths = ["tests", "src"]
+testpaths = ["tests", "src", "docs"]
 
 [tool.mypy]
 disable_error_code = ["import-untyped"]

@@ -1,3 +1,5 @@
+"""Data types and convenient aliases."""
+
 from enum import Enum
 from typing import Tuple
 from pydantic.dataclasses import dataclass
