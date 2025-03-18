@@ -125,11 +125,11 @@ DISPATCH_PARSERS: Dict[str, Callable[[pathlib.Path], types.Activity]] = {
 
 
 def parse_activity_file(path_to_file: pathlib.Path) -> types.Activity:
-    """Create a new `Activity` using data from a file.
+    """Create a new `Activity` by reading data from a file.
 
-    See module globnal `DISPATCH_PARSERS` to see what file types are supported.
-    To add a support for a new parser:
+    By default, gpx and fit files are supported.
 
+    To add a support for a new parser at runtime:
     >>> def my_parser(path_to_file):
     ...     print("executing my parser")
 
@@ -147,6 +147,10 @@ def parse_activity_file(path_to_file: pathlib.Path) -> types.Activity:
 
 
 def parse_all_files_in_dir(path_to_dir: pathlib.Path) -> List[types.Activity]:
+    """Attempt to read every file in a directory into an `Activity` class.
+
+    If processing a file fails, a warning will be presented with the error's stacktrace,
+    and we will move onto the next file."""
     activities = []
     for f in path_to_dir.iterdir():
         try:

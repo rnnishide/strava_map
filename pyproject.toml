@@ -7,7 +7,7 @@ name =  "strava-map"
 authors = [
     {name = "Rebecca Nishide", email = "rnnishide@gmail.com"},
 ]
-description = "Package to make an image of all routes given gpx files downloaded from Strava."
+description = "Package to process gps coordinates from strava into plots and a graph."
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -25,7 +25,6 @@ dependencies = [
     "pydantic",
     "plotly",
     "networkx==3.2.1",
-    "geopy",
     "fitparse",
 ]
 

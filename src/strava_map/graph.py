@@ -124,6 +124,7 @@ def add_activity_to_graph(
 def make_graph(
     activities: List[types.Activity], max_edge_length: float = MAX_EDGE_LEN
 ) -> networkx.DiGraph:
+    """Make a graph that has all the coordinates recorded in all activities as nodes."""
     g: networkx.DiGraph = networkx.DiGraph()
     for activity in activities:
         add_activity_to_graph(g, activity, max_edge_length=max_edge_length)

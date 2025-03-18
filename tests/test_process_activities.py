@@ -29,4 +29,4 @@ def test_process_fit_file(test_data):
     assert activity.name == "test_fit_file"
 
 
-# TODO: test figure creation by checking figure dict stuff, without showing
+# TODO: Test figure creation by making sure it produces the correct dictionary.

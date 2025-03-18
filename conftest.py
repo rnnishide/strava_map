@@ -5,5 +5,5 @@ import pytest
 
 @pytest.fixture
 def test_data(request) -> pathlib.Path:
-    """Include Mocks here to execute all commands offline and fast."""
+    """Get path to test data directory."""
     return pathlib.Path(request.path.parent.parent) / "tests" / "data"
