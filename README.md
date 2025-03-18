@@ -1,6 +1,6 @@
 # What does this package do
 
-This codebase parses gpx and fit files downloaded from Strava, a popular fitness tracker for outdoor sports. The data can be thrown on a plot, or into a graph datastructure. Once you have a graph, you can use to to calculate the best route between two points, based on frequency of records at each coordinate and distance. 
+This codebase parses gpx and fit files downloaded from Strava, a popular fitness tracker for outdoor sports. The data can be thrown on a plot, or into a graph data structure. Once you have a graph, you can calculate the best route between two points, with preference for routes that are taken more frequently.
 
 Here is an example of a plot with a route generated in red:
 
