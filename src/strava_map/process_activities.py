@@ -50,7 +50,7 @@ def _process_strava_gpx_file(path_to_file: pathlib.Path):
     NAME_TAG = "name"
 
     f = open(path_to_file, "r")
-    lines = iter(f.readlines())
+    lines = iter(f)
 
     # Start time is always first
     start_time = ""

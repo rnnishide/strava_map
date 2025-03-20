@@ -2,7 +2,7 @@
 
 This codebase parses gpx and fit files downloaded from Strava, a popular fitness tracker for outdoor sports. The data can be thrown on a plot, or into a graph data structure. Once you have a graph, you can calculate the best route between two points, with preference for routes that are taken more frequently.
 
-Here is an example of a plot with a route generated in red:
+Here is an example of a plot with a ropute generated in red:
 
 ![example](./example_plot.png)
 
